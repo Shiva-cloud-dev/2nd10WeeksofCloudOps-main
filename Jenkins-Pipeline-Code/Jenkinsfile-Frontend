@@ -19,7 +19,8 @@ pipeline {
         }
         stage('Checkout from Git') {
             steps {
-                git branch: 'main', url: 'https://github.com/CloudTechDevOps/2nd10WeeksofCloudOps-main.git'
+               git branch: 'main', url: 'https://github.com/Shiva-cloud-dev/2nd10WeeksofCloudOps-main.git'
+
             }
         }
         stage('Sonarqube Analysis') {
@@ -27,26 +28,16 @@ pipeline {
                 dir('client') {
                     withSonarQubeEnv('sonar-server') {
                         sh ''' $SCANNER_HOME/bin/sonar-scanner \
-                        -Dsonar.projectName=three-tier-frontend \
-                        -Dsonar.projectKey=three-tier-frontend '''
+                          -Dsonar.projectKey=frontend \
+                          -Dsonar.sources=. \
+                           -Dsonar.host.url=http://35.170.51.217:9000 \
+                           -Dsonar.login=squ_d4df8997dcd8f76cf12d712142b258e8b5196fb1 '''
                     }
                 }
             }
         }
-        stage('Quality Check') {
-            steps {
-                script {
-                    waitForQualityGate abortPipeline: false, credentialsId: 'sonar-token' 
-                }
-            }
-        }
-        stage('Trivy File Scan') {
-            steps {
-                dir('client') {
-                    sh 'trivy fs . > trivyfs.txt'
-                }
-            }
-        }
+       
+       
         stage("Docker Image Build") {
             steps {
                 script {
@@ -67,33 +58,30 @@ pipeline {
                 }
             }
         }
-        stage("TRIVY Image Scan") {
-            steps {
-                sh 'trivy image ${REPOSITORY_URI}${AWS_ECR_REPO_NAME}:${BUILD_NUMBER} > trivyimage.txt' 
-            }
-        }
+       
         stage('Checkout Code') {
             steps {
-                git branch: 'main', url: 'https://github.com/CloudTechDevOps/2nd10WeeksofCloudOps-main.git'
+              git branch: 'main', url: 'https://github.com/Shiva-cloud-dev/2nd10WeeksofCloudOps-main.git'
+
             }
         }
         stage('Update Deployment file') {
             environment {
                 GIT_REPO_NAME = "2nd10WeeksofCloudOps-main"
-                GIT_USER_NAME = "CloudTechDevOps"
+                GIT_USER_NAME = "Shiva-cloud-dev"
             }
             steps {
                 dir('kubernetes-files') {
-                    withCredentials([string(credentialsId: 'my-git-pattoken', variable: 'git_token')]) {
+                    withCredentials([string(credentialsId: 'github', variable: 'git_token')]) {
                         sh '''
-                            git config user.email "cloud87777@gmail.com"
-                            git config user.name "CloudTechDevOps"
+                            git config user.email "shivaprasad9170@gmail.com"
+                            git config user.name "Shiva-cloud-dev"
                             BUILD_NUMBER=${BUILD_NUMBER}
                             echo $BUILD_NUMBER
                             sed -i "s#image:.*#image: $REPOSITORY_URI$AWS_ECR_REPO_NAME:$BUILD_NUMBER#g" frontend-deploy-service.yaml
                             git add .
                             git commit -m "Update deployment Image to version \${BUILD_NUMBER}"
-                            git push https://${git_token}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME} HEAD:main
+                            git push https://${sonar-token}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME} HEAD:main
         
                         '''
                     }
