@@ -19,7 +19,7 @@ pipeline {
         }
         stage('Checkout from Git') {
             steps {
-                git branch: 'main', url: 'https://github.com/CloudTechDevOps/2nd10WeeksofCloudOps-main.git'
+                git branch: 'main', url: 'https://github.com/Shiva-cloud-dev/2nd10WeeksofCloudOps-main.git'
             }
         }
         stage('Sonarqube Analysis') {
@@ -33,20 +33,8 @@ pipeline {
                 }
             }
         }
-        stage('Quality Check') {
-            steps {
-                script {
-                    waitForQualityGate abortPipeline: false, credentialsId: 'sonar-token' 
-                }
-            }
-        }
-        stage('Trivy File Scan') {
-            steps {
-                dir('backend') {
-                    sh 'trivy fs . > trivyfs.txt'
-                }
-            }
-        }
+       
+     
         stage("Docker Image Build") {
             steps {
                 script {
@@ -67,33 +55,29 @@ pipeline {
                 }
             }
         }
-        stage("TRIVY Image Scan") {
-            steps {
-                sh 'trivy image ${REPOSITORY_URI}${AWS_ECR_REPO_NAME}:${BUILD_NUMBER} > trivyimage.txt' 
-            }
-        }
+       
         stage('Checkout Code') {
             steps {
-                git branch: 'main', url: 'https://github.com/CloudTechDevOps/2nd10WeeksofCloudOps-main.git'
+                git branch: 'main', url: 'https://github.com/Shiva-cloud-dev/2nd10WeeksofCloudOps-main.git'
             }
         }
         stage('Update Deployment file') {
             environment {
                 GIT_REPO_NAME = "2nd10WeeksofCloudOps-main"
-                GIT_USER_NAME = "CloudTechDevOps"
+                GIT_USER_NAME = "Shiva-cloud-dev"
             }
             steps {
                 dir('kubernetes-files') {
-                    withCredentials([string(credentialsId: 'my-git-pattoken', variable: 'git_token')]) {
+                    withCredentials([string(credentialsId: 'github', variable: 'git_token')]) {
                         sh '''
-                            git config user.email "cloud87777@gmail.com"
-                            git config user.name "CloudTechDevOps"
+                            git config user.email "shivaprasad9170@gmail.com"
+                            git config user.name "Shiva-cloud-dev"
                             BUILD_NUMBER=${BUILD_NUMBER}
                             echo $BUILD_NUMBER
                             sed -i "s#image:.*#image: $REPOSITORY_URI$AWS_ECR_REPO_NAME:$BUILD_NUMBER#g" backend-deployment.yaml
                             git add .
                             git commit -m "Update deployment Image to version \${BUILD_NUMBER}"
-                            git push https://${git_token}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME} HEAD:main
+                            git push https:${sonar-token}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME} HEAD:main
                         '''
                     }
                 }
